@@ -13,6 +13,7 @@ const GameBoard = () => {
   const [gameStarted, setGameStarted] = useState(false); // Track if the game has started
   const [isPageLoaded, setIsPageLoaded] = useState(false); // Track if the page has loaded
   const [buttonClicked, setButtonClicked] = useState(false); // Track if the button was clicked
+  const [cellClicked, setCellClicked] = useState(false); // Track if the button was clicked
 
   useEffect(() => {
     // Ensure page is loaded before showing the button
@@ -20,8 +21,13 @@ const GameBoard = () => {
   }, []);
 
   const handleCellClick = (row: number, col: number) => {
+    setCellClicked(true)
     const cellId = `${row}-${col}`;
     setRevealedCells(prev => new Set([...prev, cellId]));
+  };
+
+  const handleCloseSearchBar = () => {
+    setCellClicked(false)
   };
 
   // Function to start the game when the button is clicked
@@ -118,6 +124,19 @@ const GameBoard = () => {
             </div>
           </div>
         )
+      )}
+      {cellClicked && (
+        <div
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center z-50"
+          onClick={handleCloseSearchBar} // Close on background click
+        >
+            <input
+              placeholder="Search..."
+              autoFocus
+              className="bg-white p-4 rounded shadow-lg text-black h-10 w-2/3 mt-10"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the search bar
+            />
+        </div>
       )}
     </div>
   );
