@@ -55,7 +55,7 @@ const GameBoard = () => {
             sx={{
               fontFamily: 'inherit',
               backgroundColor: '#3D57D6',
-              color: 'white',
+              color: '#FBFBFB',
               textTransform: 'none',
               '&:hover': {
                 backgroundColor: '#2a4bb6', // A slightly darker shade for hover effect
