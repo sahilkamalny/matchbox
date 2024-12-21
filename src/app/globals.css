@@ -14,10 +14,16 @@
   }
 }
 
+@font-face {
+  font-family: 'Core Sans';
+  src: url('../../public/CoreSansD75Black.otf') format('opentype');
+}
+
+
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: '/OCR-a__.ttf', monospace;
+  font-family: 'Core Sans', monospace;
 }
 
 @keyframes pop {
