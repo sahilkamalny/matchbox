@@ -21,13 +21,13 @@ const GameBoard = () => {
   }, []);
 
   const handleCellClick = (row: number, col: number) => {
-    setCellClicked(true)
+    setCellClicked(true);
     const cellId = `${row}-${col}`;
-    setRevealedCells(prev => new Set([...prev, cellId]));
+    setRevealedCells((prev) => new Set([...prev, cellId]));
   };
 
   const handleCloseSearchBar = () => {
-    setCellClicked(false)
+    setCellClicked(false);
   };
 
   // Function to start the game when the button is clicked
@@ -83,7 +83,14 @@ const GameBoard = () => {
 
               {/* Top hints */}
               {hints.top.map((hint, index) => (
-                <Card key={`top-${index}`} className="p-4 h-24 flex items-center justify-center text-center">
+                <Card
+                  key={`top-${index}`}
+                  className="p-4 h-24 flex items-center justify-center text-center"
+                  style={{
+                    backgroundColor: '#121212',
+                    color: 'white',
+                  }}
+                >
                   {hint}
                 </Card>
               ))}
@@ -92,7 +99,13 @@ const GameBoard = () => {
               {Array.from({ length: gridSize }).map((_, row) => (
                 <React.Fragment key={`row-${row}`}>
                   {/* Left hint */}
-                  <Card className="p-4 h-24 flex items-center justify-center text-center">
+                  <Card
+                    className="p-4 h-24 flex items-center justify-center text-center"
+                    style={{
+                      backgroundColor: '#121212',
+                      color: 'white',
+                    }}
+                  >
                     {hints.left[row]}
                   </Card>
 
@@ -102,14 +115,14 @@ const GameBoard = () => {
                     const isRevealed = revealedCells.has(cellId);
 
                     return (
-                      <Card 
+                      <Card
                         key={`cell-${cellId}`}
                         className={`h-24 cursor-pointer transition-all duration-300 ${
                           isRevealed ? 'pop-animation' : 'hover:bg-gray-100'
                         }`}
                         style={{
-                          backgroundColor: isRevealed ? '#3D57D6' : '',
-                          color: isRevealed ? 'white' : '',
+                          backgroundColor: isRevealed ? '#3D57D6' : '#121212', // Default color to #121212
+                          color: isRevealed ? 'white' : 'white', // Text color is white in both states
                         }}
                         onClick={() => handleCellClick(row, col)}
                       >
@@ -130,12 +143,12 @@ const GameBoard = () => {
           className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center z-50"
           onClick={handleCloseSearchBar} // Close on background click
         >
-            <input
-              placeholder="Search..."
-              autoFocus
-              className="bg-white p-4 rounded shadow-lg text-black h-10 w-2/3 mt-10"
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the search bar
-            />
+          <input
+            placeholder="Search..."
+            autoFocus
+            className="bg-white p-4 rounded shadow-lg text-black h-10 w-2/3 mt-10"
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the search bar
+          />
         </div>
       )}
     </div>
