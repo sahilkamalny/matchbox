@@ -2,16 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import sys
-import time  # Import time module for sleep functionality
+import time
 
 def scrape_nfl_data(stat, year):
-    # URL of the page to scrape
     url = f"https://www.pro-football-reference.com/years/{year}/{stat}.htm"
-
-    # Fetch the page content
     response = requests.get(url)
 
-    # Check if the request was successful
     if response.status_code != 200:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return
@@ -19,7 +15,7 @@ def scrape_nfl_data(stat, year):
     soup = BeautifulSoup(response.content, 'html.parser')
 
     # Locate the table
-    table = soup.find('table', {'id': stat})  # Ensure the 'id' is correct for the table
+    table = soup.find('table', {'id': stat})
     if not table:
         print(f"Could not find table with id '{stat}'")
         return
@@ -32,15 +28,11 @@ def scrape_nfl_data(stat, year):
 
     headers = [th.text.strip() for th in thead.find_all('th')]
 
-    # Debug output to check headers count
-    print(f"Extracted Headers: {headers}")
-    print(f"Number of Headers: {len(headers)}")
+    # Ignore first few columns until 'Player'
+    start_index = headers.index('Player')
+    headers = headers[start_index:]
 
-    # Ignore the first few columns and keep only the relevant ones starting from 'Player'
-    start_index = headers.index('Player')  # Find the 'Player' column to start from
-    headers = headers[start_index:]  # Keep only the relevant headers
-
-    # Remove 'Rk' column and any other irrelevant columns from the data
+    # Remove 'Rk' column and other irrelevant columns from the data
     if headers[0] == 'Rk':
         headers = headers[1:]
 
@@ -51,10 +43,6 @@ def scrape_nfl_data(stat, year):
         if cells:
             rows.append(cells)
 
-    # Debug output to check rows count
-    print(f"Number of Rows: {len(rows)}")
-    print(f"Number of Columns in First Row: {len(rows[0]) if rows else 'No rows'}")
-
     # Adjust the number of columns in data to match headers
     if len(headers) < len(rows[0]):
         rows = [row[:len(headers)] for row in rows]  # Truncate rows to match header length
@@ -64,7 +52,6 @@ def scrape_nfl_data(stat, year):
 
     # Save to CSV or Use Directly
     df.to_csv(f"../public/data/nfl/nfl_{stat}_stats_{year}.csv", index=False)
-    print(df.head())
 
 # Entry point for command-line execution
 if __name__ == "__main__":
@@ -72,12 +59,12 @@ if __name__ == "__main__":
     
     # If no arguments are passed, scrape for all years and stats
     if len(sys.argv) == 1:
-        for year in range(1980, 2025):
+        for year in range(2005, 2025):
             for stat in stats:
                 print(f"Scraping {stat} stats for year {year}...")
                 scrape_nfl_data(stat, year)
-                print("Waiting for 30 seconds before the next scrape...")
-                time.sleep(10)  # Wait for 10 seconds between scrapes
+                print("Waiting for 3 seconds before the next scrape...")
+                time.sleep(3)
 
     # If arguments are passed, use them to scrape a specific stat and year
     elif len(sys.argv) == 3:
