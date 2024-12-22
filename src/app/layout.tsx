@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "MatchBox",
-  description: "Match the hints to guess the person!"
+  description: "Match the hints to guess the player!"
 };
 
 export default function RootLayout({
