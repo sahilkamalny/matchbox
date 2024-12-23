@@ -20,7 +20,7 @@ export default function RootLayout({
 
         {/* Displays logo at the bottom */}
         <img
-          src="/matchbox.png" // Updated path to match image in the public directory
+          src="/images/matchbox.png" // Updated path to match image in the public directory
           alt="MatchBox"
           className="fixed bottom-12 left-1/2 transform -translate-x-1/2 mb-4" // Fixed positioning at the bottom
           style={{ width: '100px' }} // Adjust the size as needed

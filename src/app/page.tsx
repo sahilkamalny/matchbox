@@ -20,13 +20,19 @@ const GameBoard = () => {
   const [buttonClicked, setButtonClicked] = useState(false);
   const [tileClicked, setTileClicked] = useState(false);
 
+  const [timeLeft, setTimeLeft] = useState(600); // default 10 minute timer
+  const [timerActive, setTimerActive] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+
   // Simulated API fetch function
   const fetchArtists = async () => {
     try {
       const mainArtist = await getRandomArtist();
       const collaboratorsMain = await getCollaborators(mainArtist.id);
 
-      const newGrid = grid.map((row) => [...row]);
+      const newGrid = Array(3)
+        .fill(null)
+        .map(() => Array(3).fill(null));
       newGrid[1][1] = mainArtist.name || ""; // Middle tile
       newGrid[1][0] = collaboratorsMain[0]?.name || ""; // Left tile in the middle row
       newGrid[1][2] = collaboratorsMain[1]?.name || ""; // Right tile in the middle row
@@ -109,9 +115,9 @@ const GameBoard = () => {
 
   const getCollaborators = async (artistId: string) => {
     return [
-      { id: "1", name: "Collaborator" + " (ID: " + artistId + ")" },
-      { id: "2", name: "Collaborator" + " (ID: " + artistId + ")" },
-      { id: "3", name: "Collaborator" + " (ID: " + artistId + ")" },
+      { id: "1", name: "Collaborator" + " (of " + artistId + ")" },
+      { id: "2", name: "Collaborator" + " (of " + artistId + ")" },
+      { id: "3", name: "Collaborator" + " (of " + artistId + ")" },
     ];
   };
 
@@ -120,14 +126,29 @@ const GameBoard = () => {
     if (gameStarted) fetchArtists();
   }, [gameStarted]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setTimerActive(false);
+      setIsTimeUp(true);
+      // Reveal all tiles
+      const allTiles = Array.from({ length: gridSize }, (_, row) =>
+        Array.from({ length: gridSize }, (_, col) => `${row}-${col}`)
+      ).flat();
+      setRevealedTiles(new Set(allTiles));
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timeLeft]);
+
   const handleTileClick = (row: number, col: number) => {
     const cellId = `${row}-${col}`;
     if (!revealedTiles.has(cellId)) {
-      // Play sound effect when a tile is revealed for the first time
       playTileSound();
       setRevealedTiles((prev) => new Set([...prev, cellId]));
-      
-      // Only show the search bar if the tile is revealed for the first time
       setTileClicked(true);
     }
   };
@@ -136,33 +157,76 @@ const GameBoard = () => {
     setTileClicked(false);
   };
 
-  // Sound effect for button click
   const playStartSound = () => {
-    const audio = new Audio("/sounds/start-matching.mp3"); // Path to your sound file
+    const audio = new Audio("/sounds/start-matching.mp3");
     audio.play();
   };
 
-  // Sound effect for tile reveal
   const playTileSound = () => {
-    const audio = new Audio("/sounds/tile-clicked.mp3"); // Path to your sound file for tile reveal
+    const audio = new Audio("/sounds/tile-clicked.mp3");
     audio.play();
   };
 
   const startGame = () => {
-    playStartSound(); // Play the sound
-    setButtonClicked(true);
+    playStartSound();
+    //setButtonClicked(true);
     setTimeout(() => {
       setGameStarted(true);
+      setTimerActive(true);
+      setTimeLeft(60);
     }, 300);
     setTimeout(() => setButtonClicked(false), 300);
   };
 
+  const resetGame = () => {
+    // Reset UI states
+    playStartSound();
+    setIsTimeUp(false);
+    setRevealedTiles(new Set());
+    setTimeLeft(60);
+    setTimerActive(true);
+
+    // Reset grid and hints
+    setGrid(
+      Array(3)
+        .fill(null)
+        .map(() => Array(3).fill(null))
+    );
+    setHints({ top: ["", "", ""], left: ["", "", ""] });
+
+    // Fetch new data
+    fetchArtists();
+  };
+
+  // Rest of the component remains the same...
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">MatchBox</h1>
         <p className="text-gray-600">Match the hints to guess the person!</p>
       </div>
+
+      {gameStarted && (
+        <div className="absolute top-4 right-6 flex items-center justify-center">
+          <img
+            src="/images/stopwatch.png"
+            alt="Stopwatch"
+            className="h-12 w-12 mr-2 my-auto"
+          />
+          <span
+            className="text-3xl font-semibold flex items-center"
+            style={timeLeft === 0 ? { color: "#FF0000" } : {}}
+          >
+            {timeLeft === 0
+              ? "TIME'S UP!!"
+              : timeLeft < 600
+              ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60)
+                  .toString()
+                  .padStart(2, "0")}`
+              : `10:00`}
+          </span>
+        </div>
+      )}
 
       {!gameStarted && isPageLoaded ? (
         <div className="text-center mt-12">
@@ -226,14 +290,18 @@ const GameBoard = () => {
                           isRevealed ? "pop-animation" : ""
                         }`}
                         sx={{
-                          backgroundColor: isRevealed ? "#3D57D6" : "#121212",
+                          backgroundColor: isTimeUp
+                            ? "#FF0000"
+                            : isRevealed
+                            ? "#3D57D6"
+                            : "#121212",
                           color: "white",
                           transition: "all 0.3s ease",
                           ...(!isRevealed && {
                             "&:hover": {
                               backgroundColor: "#0a0a0a",
                               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
-                              transform: "scale(1.05)", // This matches the pop animation scale
+                              transform: "scale(1.05)",
                             },
                           }),
                         }}
@@ -248,6 +316,26 @@ const GameBoard = () => {
                 </React.Fragment>
               ))}
             </div>
+            {isTimeUp && (
+              <div className="mt-8 text-center">
+                <Button
+                  variant="contained"
+                  onClick={resetGame}
+                  sx={{
+                    fontFamily: "inherit",
+                    backgroundColor: "#3D57D6",
+                    color: "#FBFBFB",
+                    textTransform: "none",
+                    "&:hover": {
+                      backgroundColor: "#1f3c87",
+                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                    },
+                  }}
+                >
+                  ReMatch!
+                </Button>
+              </div>
+            )}
           </div>
         )
       )}
@@ -274,8 +362,8 @@ const GameBoard = () => {
               style={{
                 fontSize: "16px",
                 outline: "none",
-                color: "black", // Set the text color to black or a visible color
-                backgroundColor: "white", // Ensures the input background is white
+                color: "black",
+                backgroundColor: "white",
               }}
             />
           </div>
