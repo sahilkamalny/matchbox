@@ -1,92 +1,155 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, Button } from '@mui/material';
+import React, { useState, useEffect } from "react";
+import { Card, Button } from "@mui/material";
 
 const GameBoard = () => {
   const [gridSize] = useState(3);
   const [hints, setHints] = useState({
-    top: ['Hint 1', 'Hint 2', 'Hint 3'],
-    left: ['Hint A', 'Hint B', 'Hint C']
+    top: ["", "", ""],
+    left: ["", "", ""],
   });
-  const [revealedCells, setRevealedCells] = useState(new Set());
+  const [grid, setGrid] = useState<(string | null)[][]>(
+    Array(3)
+      .fill(null)
+      .map(() => Array(3).fill(null))
+  );
+  const [revealedTiles, setRevealedTiles] = useState(new Set<string>());
   const [gameStarted, setGameStarted] = useState(false);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
   const [buttonClicked, setButtonClicked] = useState(false);
   const [tileClicked, setTileClicked] = useState(false);
-  const [nflData, setNflData] = useState<any>({});
 
-  useEffect(() => {
-    fetch('/data/nfl/nfl_player_data.json')
-      .then(response => response.json())
-      .then(data => {
-        setNflData(data);
-        generateHints(data);
-      });
-    setIsPageLoaded(true);
-  }, []);
+  // Simulated API fetch function
+  const fetchArtists = async () => {
+    try {
+      const mainArtist = await getRandomArtist();
+      const collaboratorsMain = await getCollaborators(mainArtist.id);
 
-  const generateHints = (data: any) => {
-    const getRandomFact = (playerData: any) => {
-      const randomSeason = playerData[Math.floor(Math.random() * playerData.length)];
-      
-      // Define possible hint templates based on stat types
-      const hintTemplates = {
-        defense: [
-          (stats: any) => stats.Comb > 0 ? `${stats.Comb} combined tackles in ${stats.G} games` : null,
-          (stats: any) => stats.Solo > 0 ? `${stats.Solo} solo tackles in ${stats.G} games` : null,
-          (stats: any) => stats.Sk > 0 ? `${stats.Sk} sacks in ${stats.G} games` : null,
-          (stats: any) => stats.TFL > 0 ? `${stats.TFL} tackles for loss` : null
+      const newGrid = grid.map((row) => [...row]);
+      newGrid[1][1] = mainArtist.name || ""; // Middle tile
+      newGrid[1][0] = collaboratorsMain[0]?.name || ""; // Left tile in the middle row
+      newGrid[1][2] = collaboratorsMain[1]?.name || ""; // Right tile in the middle row
+
+      // Populate left hint for the middle row
+      setHints((prevHints) => ({
+        ...prevHints,
+        left: [
+          prevHints.left[0],
+          collaboratorsMain[2]?.name || "",
+          prevHints.left[2],
         ],
-        receiving: [
-          (stats: any) => stats.Rec > 0 ? `${stats.Rec} receptions for ${stats.Yds} yards` : null,
-          (stats: any) => stats.TD > 0 ? `${stats.TD} receiving TDs in ${stats.G} games` : null,
-          (stats: any) => stats.Y_R > 0 ? `${stats.Y_R} yards per reception` : null,
-          (stats: any) => stats.Ctch_pct > 0 ? `${stats.Ctch_pct}% catch rate` : null
-        ],
-        scoring: [
-          (stats: any) => stats.Pts > 0 ? `${stats.Pts} total points scored` : null,
-          (stats: any) => stats.AllTD > 0 ? `${stats.AllTD} total touchdowns` : null,
-          (stats: any) => stats.Pts_G > 0 ? `${stats.Pts_G} points per game` : null
-        ]
-      };
+      }));
 
-      // Determine stat type and get relevant templates
-      const statType = randomSeason.STAT;
-      const relevantTemplates = hintTemplates[statType as keyof typeof hintTemplates] || [];
-
-      // Filter out templates that would return null for this player's stats
-      const validHints = relevantTemplates
-        .map(template => template(randomSeason))
-        .filter(hint => hint !== null);
-
-      // If no valid hints found, try another season or return a basic fact
-      if (validHints.length === 0) {
-        return `Played ${randomSeason.G} games in ${randomSeason.YEAR}`;
-      }
-
-      // Return a random valid hint
-      return validHints[Math.floor(Math.random() * validHints.length)];
-    };
-
-    // Generate random hints for the grid
-    setHints({
-      top: Object.keys(data).slice(0, 3).map(playerName => getRandomFact(data[playerName])),
-      left: Object.keys(data).slice(3, 6).map(playerName => getRandomFact(data[playerName])),
-    });
+      // Populate columns
+      await populateColumns(newGrid, collaboratorsMain);
+    } catch (error) {
+      console.error("Error fetching artist data:", error);
+    }
   };
 
-  const handleCellClick = (row: number, col: number) => {
-    setTileClicked(true);
+  const populateColumns = async (
+    grid: (string | null)[][],
+    collaboratorsMain: { id: string; name: string }[]
+  ) => {
+    try {
+      // Column 1
+      const collaboratorsCol1 = await getCollaborators(
+        collaboratorsMain[0]?.id || ""
+      );
+      grid[0][0] = collaboratorsCol1[0]?.name || ""; // Top of column 1
+      grid[2][0] = collaboratorsCol1[1]?.name || ""; // Bottom of column 1
+      setHints((prevHints) => ({
+        ...prevHints,
+        top: [
+          collaboratorsCol1[2]?.name || "",
+          prevHints.top[1],
+          prevHints.top[2],
+        ],
+      }));
+
+      // Column 2
+      const collaboratorsCol2 = await getCollaborators(grid[1][1] || "");
+      grid[0][1] = collaboratorsCol2[0]?.name || ""; // Top of column 2
+      grid[2][1] = collaboratorsCol2[1]?.name || ""; // Bottom of column 2
+      setHints((prevHints) => ({
+        ...prevHints,
+        top: [
+          prevHints.top[0],
+          collaboratorsCol2[2]?.name || "",
+          prevHints.top[2],
+        ],
+      }));
+
+      // Column 3
+      const collaboratorsCol3 = await getCollaborators(
+        collaboratorsMain[1]?.id || ""
+      );
+      grid[0][2] = collaboratorsCol3[0]?.name || ""; // Top of column 3
+      grid[2][2] = collaboratorsCol3[1]?.name || ""; // Bottom of column 3
+      setHints((prevHints) => ({
+        ...prevHints,
+        top: [
+          prevHints.top[0],
+          prevHints.top[1],
+          collaboratorsCol3[2]?.name || "",
+        ],
+      }));
+
+      setGrid([...grid]);
+    } catch (error) {
+      console.error("Error populating columns:", error);
+    }
+  };
+
+  // Mock API functions
+  const getRandomArtist = async () => {
+    return { id: "123", name: "Main Artist" };
+  };
+
+  const getCollaborators = async (artistId: string) => {
+    return [
+      { id: "1", name: "Collaborator" + " (ID: " + artistId + ")" },
+      { id: "2", name: "Collaborator" + " (ID: " + artistId + ")" },
+      { id: "3", name: "Collaborator" + " (ID: " + artistId + ")" },
+    ];
+  };
+
+  useEffect(() => {
+    setIsPageLoaded(true);
+    if (gameStarted) fetchArtists();
+  }, [gameStarted]);
+
+  const handleTileClick = (row: number, col: number) => {
     const cellId = `${row}-${col}`;
-    setRevealedCells((prev) => new Set([...prev, cellId]));
+    if (!revealedTiles.has(cellId)) {
+      // Play sound effect when a tile is revealed for the first time
+      playTileSound();
+      setRevealedTiles((prev) => new Set([...prev, cellId]));
+      
+      // Only show the search bar if the tile is revealed for the first time
+      setTileClicked(true);
+    }
   };
 
   const handleCloseSearchBar = () => {
     setTileClicked(false);
   };
 
+  // Sound effect for button click
+  const playStartSound = () => {
+    const audio = new Audio("/sounds/start-matching.mp3"); // Path to your sound file
+    audio.play();
+  };
+
+  // Sound effect for tile reveal
+  const playTileSound = () => {
+    const audio = new Audio("/sounds/tile-clicked.mp3"); // Path to your sound file for tile reveal
+    audio.play();
+  };
+
   const startGame = () => {
+    playStartSound(); // Play the sound
     setButtonClicked(true);
     setTimeout(() => {
       setGameStarted(true);
@@ -98,7 +161,7 @@ const GameBoard = () => {
     <div className="w-full max-w-4xl mx-auto p-4">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">MatchBox</h1>
-        <p className="text-gray-600">Match the hints to guess the player!</p>
+        <p className="text-gray-600">Match the hints to guess the person!</p>
       </div>
 
       {!gameStarted && isPageLoaded ? (
@@ -106,15 +169,15 @@ const GameBoard = () => {
           <Button
             variant="contained"
             onClick={startGame}
-            className={buttonClicked ? 'pop-animation' : ''}
+            className={buttonClicked ? "pop-animation" : ""}
             sx={{
-              fontFamily: 'inherit',
-              backgroundColor: '#3D57D6',
-              color: '#FBFBFB',
-              textTransform: 'none',
-              '&:hover': {
-                backgroundColor: '#2a4bb6',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              fontFamily: "inherit",
+              backgroundColor: "#3D57D6",
+              color: "#FBFBFB",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#1f3c87",
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
               },
             }}
           >
@@ -132,8 +195,8 @@ const GameBoard = () => {
                   key={`top-${index}`}
                   className="p-4 h-24 flex items-center justify-center text-center"
                   style={{
-                    backgroundColor: '#121212',
-                    color: 'white',
+                    backgroundColor: "#121212",
+                    color: "white",
                   }}
                 >
                   {hint}
@@ -145,31 +208,39 @@ const GameBoard = () => {
                   <Card
                     className="p-4 h-24 flex items-center justify-center text-center"
                     style={{
-                      backgroundColor: '#121212',
-                      color: 'white',
+                      backgroundColor: "#121212",
+                      color: "white",
                     }}
                   >
                     {hints.left[row]}
                   </Card>
 
                   {Array.from({ length: gridSize }).map((_, col) => {
-                    const cellId = `${row}-${col}`;
-                    const isRevealed = revealedCells.has(cellId);
+                    const tileId = `${row}-${col}`;
+                    const isRevealed = revealedTiles.has(tileId);
 
                     return (
                       <Card
-                        key={`cell-${cellId}`}
+                        key={`cell-${tileId}`}
                         className={`h-24 cursor-pointer transition-all duration-300 ${
-                          isRevealed ? 'pop-animation' : 'hover:bg-gray-100'
+                          isRevealed ? "pop-animation" : ""
                         }`}
-                        style={{
-                          backgroundColor: isRevealed ? '#3D57D6' : '#121212',
-                          color: isRevealed ? 'white' : 'white',
+                        sx={{
+                          backgroundColor: isRevealed ? "#3D57D6" : "#121212",
+                          color: "white",
+                          transition: "all 0.3s ease",
+                          ...(!isRevealed && {
+                            "&:hover": {
+                              backgroundColor: "#0a0a0a",
+                              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
+                              transform: "scale(1.05)", // This matches the pop animation scale
+                            },
+                          }),
                         }}
-                        onClick={() => handleCellClick(row, col)}
+                        onClick={() => handleTileClick(row, col)}
                       >
                         <div className="w-full h-full flex items-center justify-center">
-                          {isRevealed ? 'Player Name' : '?'}
+                          {isRevealed ? grid[row][col] : "?"}
                         </div>
                       </Card>
                     );
@@ -183,15 +254,31 @@ const GameBoard = () => {
 
       {tileClicked && (
         <div
-          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center z-50"
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50"
           onClick={handleCloseSearchBar}
         >
-          <input
-            placeholder="Search..."
-            autoFocus
-            className="bg-white p-4 rounded shadow-lg text-black h-10 w-2/3 mt-10"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "8px",
+              borderRadius: "8px",
+              width: "300px",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search..."
+              autoFocus
+              className="w-full p-2 border border-gray-300 rounded"
+              style={{
+                fontSize: "16px",
+                outline: "none",
+                color: "black", // Set the text color to black or a visible color
+                backgroundColor: "white", // Ensures the input background is white
+              }}
+            />
+          </div>
         </div>
       )}
     </div>
