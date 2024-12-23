@@ -20,9 +20,16 @@ const GameBoard = () => {
   const [buttonClicked, setButtonClicked] = useState(false);
   const [tileClicked, setTileClicked] = useState(false);
 
-  const [timeLeft, setTimeLeft] = useState(600); // default 10 minute timer
+  const [timeLeft, setTimeLeft] = useState(600);
   const [timerActive, setTimerActive] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const [isWinner, setIsWinner] = useState(false);
+
+  // Check if all tiles are revealed
+  const checkBoardCompletion = () => {
+    const totalTiles = gridSize * gridSize;
+    return revealedTiles.size === totalTiles;
+  };
 
   // Simulated API fetch function
   const fetchArtists = async () => {
@@ -33,11 +40,10 @@ const GameBoard = () => {
       const newGrid = Array(3)
         .fill(null)
         .map(() => Array(3).fill(null));
-      newGrid[1][1] = mainArtist.name || ""; // Middle tile
-      newGrid[1][0] = collaboratorsMain[0]?.name || ""; // Left tile in the middle row
-      newGrid[1][2] = collaboratorsMain[1]?.name || ""; // Right tile in the middle row
+      newGrid[1][1] = mainArtist.name || "";
+      newGrid[1][0] = collaboratorsMain[0]?.name || "";
+      newGrid[1][2] = collaboratorsMain[1]?.name || "";
 
-      // Populate left hint for the middle row
       setHints((prevHints) => ({
         ...prevHints,
         left: [
@@ -47,7 +53,6 @@ const GameBoard = () => {
         ],
       }));
 
-      // Populate columns
       await populateColumns(newGrid, collaboratorsMain);
     } catch (error) {
       console.error("Error fetching artist data:", error);
@@ -63,8 +68,8 @@ const GameBoard = () => {
       const collaboratorsCol1 = await getCollaborators(
         collaboratorsMain[0]?.id || ""
       );
-      grid[0][0] = collaboratorsCol1[0]?.name || ""; // Top of column 1
-      grid[2][0] = collaboratorsCol1[1]?.name || ""; // Bottom of column 1
+      grid[0][0] = collaboratorsCol1[0]?.name || "";
+      grid[2][0] = collaboratorsCol1[1]?.name || "";
       setHints((prevHints) => ({
         ...prevHints,
         top: [
@@ -76,8 +81,8 @@ const GameBoard = () => {
 
       // Column 2
       const collaboratorsCol2 = await getCollaborators(grid[1][1] || "");
-      grid[0][1] = collaboratorsCol2[0]?.name || ""; // Top of column 2
-      grid[2][1] = collaboratorsCol2[1]?.name || ""; // Bottom of column 2
+      grid[0][1] = collaboratorsCol2[0]?.name || "";
+      grid[2][1] = collaboratorsCol2[1]?.name || "";
       setHints((prevHints) => ({
         ...prevHints,
         top: [
@@ -91,8 +96,8 @@ const GameBoard = () => {
       const collaboratorsCol3 = await getCollaborators(
         collaboratorsMain[1]?.id || ""
       );
-      grid[0][2] = collaboratorsCol3[0]?.name || ""; // Top of column 3
-      grid[2][2] = collaboratorsCol3[1]?.name || ""; // Bottom of column 3
+      grid[0][2] = collaboratorsCol3[0]?.name || "";
+      grid[2][2] = collaboratorsCol3[1]?.name || "";
       setHints((prevHints) => ({
         ...prevHints,
         top: [
@@ -108,7 +113,6 @@ const GameBoard = () => {
     }
   };
 
-  // Mock API functions
   const getRandomArtist = async () => {
     return { id: "123", name: "Main Artist" };
   };
@@ -128,28 +132,34 @@ const GameBoard = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (timerActive && timeLeft > 0) {
+    if (timerActive && timeLeft > 0 && !isWinner) {
       interval = setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
     } else if (timeLeft === 0) {
       setTimerActive(false);
       setIsTimeUp(true);
-      // Reveal all tiles
       const allTiles = Array.from({ length: gridSize }, (_, row) =>
         Array.from({ length: gridSize }, (_, col) => `${row}-${col}`)
       ).flat();
       setRevealedTiles(new Set(allTiles));
     }
     return () => clearInterval(interval);
-  }, [timerActive, timeLeft]);
+  }, [timerActive, timeLeft, isWinner]);
 
   const handleTileClick = (row: number, col: number) => {
     const cellId = `${row}-${col}`;
     if (!revealedTiles.has(cellId)) {
       playTileSound();
-      setRevealedTiles((prev) => new Set([...prev, cellId]));
+      const newRevealedTiles = new Set([...revealedTiles, cellId]);
+      setRevealedTiles(newRevealedTiles);
       setTileClicked(true);
+
+      // Check if this was the last tile
+      if (newRevealedTiles.size === gridSize * gridSize) {
+        setIsWinner(true);
+        setTimerActive(false);
+      }
     }
   };
 
@@ -169,36 +179,31 @@ const GameBoard = () => {
 
   const startGame = () => {
     playStartSound();
-    //setButtonClicked(true);
     setTimeout(() => {
       setGameStarted(true);
       setTimerActive(true);
       setTimeLeft(60);
+      setIsWinner(false);
     }, 300);
     setTimeout(() => setButtonClicked(false), 300);
   };
 
   const resetGame = () => {
-    // Reset UI states
     playStartSound();
     setIsTimeUp(false);
+    setIsWinner(false);
     setRevealedTiles(new Set());
     setTimeLeft(60);
     setTimerActive(true);
-
-    // Reset grid and hints
     setGrid(
       Array(3)
         .fill(null)
         .map(() => Array(3).fill(null))
     );
     setHints({ top: ["", "", ""], left: ["", "", ""] });
-
-    // Fetch new data
     fetchArtists();
   };
 
-  // Rest of the component remains the same...
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       <div className="mb-8 text-center">
@@ -215,10 +220,18 @@ const GameBoard = () => {
           />
           <span
             className="text-3xl font-semibold flex items-center"
-            style={timeLeft === 0 ? { color: "#FF0000" } : {}}
+            style={
+              isTimeUp
+                ? { color: "#FF0000" }
+                : isWinner
+                ? { color: "#08CE39" }
+                : {}
+            }
           >
-            {timeLeft === 0
+            {isTimeUp
               ? "TIME'S UP!!"
+              : isWinner
+              ? "OUT-MATCHED!!"
               : timeLeft < 600
               ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60)
                   .toString()
@@ -292,6 +305,8 @@ const GameBoard = () => {
                         sx={{
                           backgroundColor: isTimeUp
                             ? "#FF0000"
+                            : isWinner && isRevealed
+                            ? "#08CE39"
                             : isRevealed
                             ? "#3D57D6"
                             : "#121212",
@@ -316,7 +331,7 @@ const GameBoard = () => {
                 </React.Fragment>
               ))}
             </div>
-            {isTimeUp && (
+            {(isTimeUp || isWinner) && (
               <div className="mt-8 text-center">
                 <Button
                   variant="contained"
