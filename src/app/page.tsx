@@ -20,7 +20,7 @@ const GameBoard = () => {
   const [buttonClicked, setButtonClicked] = useState(false);
   const [tileClicked, setTileClicked] = useState(false);
 
-  const [timeLeft, setTimeLeft] = useState(600);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [timerActive, setTimerActive] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [isWinner, setIsWinner] = useState(false);
@@ -217,6 +217,13 @@ const GameBoard = () => {
     fetchArtists();
   };
 
+  const getTimerColor = () => {
+    if (isTimeUp) return "#FF0000";
+    if (isWinner) return "#08CE39";
+    if (timeLeft > 0 && timeLeft <= 30) return "#FFED29"; // Yellow color for 1-30 seconds
+    return "inherit";
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       <div className="mb-8 text-center">
@@ -233,13 +240,7 @@ const GameBoard = () => {
           />
           <span
             className="text-3xl font-semibold flex items-center"
-            style={
-              isTimeUp
-                ? { color: "#FF0000" }
-                : isWinner
-                ? { color: "#08CE39" }
-                : {}
-            }
+            style={{ color: getTimerColor() }}
           >
             {isTimeUp
               ? "TIME'S UP!!"
