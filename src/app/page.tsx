@@ -130,15 +130,17 @@ const GameBoard = () => {
     if (gameStarted) fetchArtists();
   }, [gameStarted]);
 
+  // MAIN GAME LOGIC
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timerActive && timeLeft > 0 && !isWinner) {
       interval = setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0) { // GAME LOST
       setTimerActive(false);
       setIsTimeUp(true);
+      playLoseSound();
       const allTiles = Array.from({ length: gridSize }, (_, row) =>
         Array.from({ length: gridSize }, (_, col) => `${row}-${col}`)
       ).flat();
@@ -155,10 +157,11 @@ const GameBoard = () => {
       setRevealedTiles(newRevealedTiles);
       setTileClicked(true);
 
-      // Check if this was the last tile
+      // GAME WON: Check if this was the last tile
       if (newRevealedTiles.size === gridSize * gridSize) {
         setIsWinner(true);
         setTimerActive(false);
+        playWinSound();
       }
     }
   };
@@ -168,14 +171,24 @@ const GameBoard = () => {
   };
 
   const playStartSound = () => {
-    const audio = new Audio("/sounds/start-matching.mp3");
+    const audio = new Audio("/sounds/start-game.mp3");
     audio.play();
   };
 
   const playTileSound = () => {
-    const audio = new Audio("/sounds/tile-clicked.mp3");
+    const audio = new Audio("/sounds/click-tile.mp3");
     audio.play();
   };
+
+  const playWinSound = () => {
+    const audio = new Audio("/sounds/game-win.mp3");
+    audio.play();
+  }
+
+  const playLoseSound = () => {
+    const audio = new Audio("/sounds/game-lose.mp3");
+    audio.play();
+  }
 
   const startGame = () => {
     playStartSound();
