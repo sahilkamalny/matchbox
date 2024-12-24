@@ -388,6 +388,7 @@ const GameBoard = () => {
               placeholder="Search..."
               autoFocus
               className="w-full p-2 border border-gray-300 rounded"
+              onClick={(e) => e.stopPropagation()}
               style={{
                 fontSize: "16px",
                 outline: "none",
