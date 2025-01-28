@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #FFFFFF;
   --foreground: #171717;
 }
 
@@ -14,10 +14,16 @@
   }
 }
 
+@font-face {
+  font-family: 'Core Sans';
+  src: url('../../public/fonts/CoreSansD75Black.otf') format('opentype');
+}
+
+
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: OCR A, Arial, Helvetica, sans-serif;
+  font-family: 'Core Sans', monospace;
 }
 
 @keyframes pop {
