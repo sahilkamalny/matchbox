@@ -5,22 +5,6 @@
 # dependencies
 /frontend/node_modules
 /backend/node_modules
-
-/frontend/build
-/backend/build
-
-/frontend/.env
-/backend/.env
-
-/frontend/package-lock.json
-/backend/package-lock.json
-
-/frontend/package.json
-/backend/package.json
-
-/backend/Procfile
-
-
 /.pnp
 .pnp.*
 .yarn/*
@@ -39,17 +23,6 @@
 # production
 /frontend/build
 /backend/build
-
-/frontend/.env
-/backend/.env
-
-/frontend/package-lock.json
-/backend/package-lock.json
-
-/frontend/package.json
-/backend/package.json
-
-/backend/Procfile
 
 # misc
 .DS_Store
