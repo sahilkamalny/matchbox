@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: 'Core Sans';
-  src: url('../../public/fonts/CoreSansD75Black.otf') format('opentype');
+  src: url('./public/fonts/CoreSansD75Black.otf') format('opentype');
 }
 
 
